@@ -8,16 +8,20 @@ from langchain_core.prompts import ChatPromptTemplate
 from dotenv import load_dotenv
 from src.prompt import *
 import os
+from langchain_openai import ChatOpenAI
 
 app = Flask(__name__)
 
 load_dotenv()
 
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+# OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+HF_TOKEN = os.environ.get('HF_TOKEN')
 
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+# os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["HF_TOKEN"] = HF_TOKEN
+
 
 embeddings = download_hugging_face_embeddings()
 
@@ -31,7 +35,14 @@ docsearch = PineconeVectorStore.from_existing_index(
 
 retriever = docsearch.as_retriever(search_type="similarity",search_kwargs={"k":3})
 
-llm = OpenAI(temperature=0.4, max_tokens=500)
+# llm = OpenAI(temperature=0.4, max_tokens=500)
+llm = ChatOpenAI(
+    model="Intelligent-Internet/II-Medical-8B-1706:featherless-ai",
+    temperature=0.4,
+    max_tokens=500,
+    api_key=HF_TOKEN,
+    base_url="https://router.huggingface.co/v1"
+)
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
