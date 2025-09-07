@@ -27,7 +27,7 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 embeddings = download_hugging_face_embeddings()
 
-index_name = 'medicalbot'
+index_name = 'medicalbot-rag'
 
 # Embed each chunk and upsert the embeddings into pinecone index
 docsearch = PineconeVectorStore.from_existing_index(
@@ -45,12 +45,27 @@ llm = OpenAI(temperature=0.4, max_tokens=500)
 #     api_key=HF_TOKEN,
 #     base_url="https://router.huggingface.co/v1"
 # )
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "{input}")
-    ]
-)
+# prompt = ChatPromptTemplate.from_messages(
+#     [
+#         ("system", system_prompt),
+#         ("human", "{input}")
+#     ]
+# )
+
+prompt = ChatPromptTemplate.from_template("""
+You are a helpful AI doctor assistant.
+Use the following context to answer the user's question.
+If the context is not relevant, just say you don’t know.
+
+Context:
+{context}
+
+Question:
+{input}
+
+Answer:
+""")
+
 
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
@@ -93,4 +108,4 @@ def chat_with_doctor():
     return str(final_answer)
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)

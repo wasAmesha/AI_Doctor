@@ -1,37 +1,99 @@
+# from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
+# from langchain.text_splitter import RecursiveCharacterTextSplitter
+# from langchain_huggingface import HuggingFaceEmbeddings   # updated import
+# # from langchain_community.embeddings import HuggingFaceEmbeddings
+
+# # import the correct mapping
+# from src.doctor_mapper import specialist_mapping
+
+
+# # Extract Data from the PDF file
+# def load_pdf_file(data):
+#     loader = DirectoryLoader(data,
+#                              glob="*.pdf",
+#                              loader_cls=PyPDFLoader)
+#     documents = loader.load()
+#     return documents
+
+
+# # Split the Data into Text Chunks
+# def text_split(extracted_data):
+#     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
+#     text_chunks = text_splitter.split_documents(extracted_data)
+#     return text_chunks
+
+
+# # Download the embeddings from HuggingFace
+# def download_hugging_face_embeddings():
+#     embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
+#     return embeddings   # ✅ FIXED
+
+
+# # Doctor recommendation function
+# def get_doctor_recommendation(user_input: str):
+#     user_input = user_input.lower()
+#     for symptom, doctor in specialist_mapping.items():   # ✅ FIXED
+#         if symptom in user_input:
+#             return f"\n\n  For your symptoms ({symptom}), you should consult a **{doctor}**."
+#     return None
+
+
 from langchain_community.document_loaders import PyPDFLoader, DirectoryLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings   # updated import
-
-# import the correct mapping
+from langchain_huggingface import HuggingFaceEmbeddings
 from src.doctor_mapper import specialist_mapping
+import spacy
+
+# Load spaCy NLP model
+nlp = spacy.load("en_core_web_sm")
 
 
-# Extract Data from the PDF file
+# Extract Data from PDF files
 def load_pdf_file(data):
-    loader = DirectoryLoader(data,
-                             glob="*.pdf",
-                             loader_cls=PyPDFLoader)
+    loader = DirectoryLoader(
+        data,
+        glob="*.pdf",
+        loader_cls=PyPDFLoader
+    )
     documents = loader.load()
     return documents
 
 
+# Preprocess text using spaCy
+def preprocess_text(text):
+    doc = nlp(text)
+    # Lemmatize, lowercase, remove stopwords & punctuation
+    tokens = [
+        token.lemma_.lower() for token in doc
+        if not token.is_stop and not token.is_punct
+    ]
+    return " ".join(tokens)
+
+
 # Split the Data into Text Chunks
 def text_split(extracted_data):
+    # Apply preprocessing to each document before splitting
+    preprocessed_docs = []
+    for doc in extracted_data:
+        doc.page_content = preprocess_text(doc.page_content)
+        preprocessed_docs.append(doc)
+
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=20)
-    text_chunks = text_splitter.split_documents(extracted_data)
+    text_chunks = text_splitter.split_documents(preprocessed_docs)
     return text_chunks
 
 
 # Download the embeddings from HuggingFace
 def download_hugging_face_embeddings():
-    embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-    return embeddings   # ✅ FIXED
+    # embeddings = HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
+    embeddings = HuggingFaceEmbeddings(model_name="microsoft/BiomedNLP-PubMedBERT-base-uncased-abstract")
+    return embeddings
 
 
 # Doctor recommendation function
 def get_doctor_recommendation(user_input: str):
     user_input = user_input.lower()
-    for symptom, doctor in specialist_mapping.items():   # ✅ FIXED
+    for symptom, doctor in specialist_mapping.items():
         if symptom in user_input:
             return f"\n\n  For your symptoms ({symptom}), you should consult a **{doctor}**."
     return None
