@@ -3127,6 +3127,16 @@ function hideTyping() {
 	$("#typing-indicator").remove();
 }
 
+function setMessage(message) {
+    document.getElementById('text').value = message;
+    document.getElementById('text').focus();
+    const welcomeMsg = document.querySelector('.welcome-message');
+    if (welcomeMsg) {
+        welcomeMsg.style.display = 'none';
+    }
+}
+
+
 function getCurrentTime() {
 	const date = new Date();
 	const hour = String(date.getHours()).padStart(2, '0');
