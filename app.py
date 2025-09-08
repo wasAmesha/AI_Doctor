@@ -10,7 +10,7 @@ from src.prompt import *
 import os
 from langchain_openai import ChatOpenAI
 
-from src.helper import download_hugging_face_embeddings, get_doctor_recommendation
+from src.helper import download_hugging_face_embeddings, get_ai_doctor_recommendation
 
 app = Flask(__name__)
 
@@ -86,23 +86,43 @@ def index():
 #     return str(response["answer"])
 
 
+# @app.route("/get", methods=["GET", "POST"])
+# def chat_with_doctor():
+#     msg = request.form["msg"]
+#     print("User:", msg)
+
+#     # Step 1: Get AI answer
+#     response = rag_chain.invoke({"input": msg})
+#     ai_answer = response["answer"]
+
+#     # Step 2: Doctor recommendation
+#     doctor_suggestion = get_doctor_recommendation(msg)
+
+#     if doctor_suggestion:
+#         final_answer = ai_answer + "\n\n" + doctor_suggestion + \
+#                        "\n You can channel this specialist via eChannelling or Doc990."
+#     else:
+#         final_answer = ai_answer
+
+#     print("Response:", final_answer)
+#     return str(final_answer)
+
 @app.route("/get", methods=["GET", "POST"])
 def chat_with_doctor():
     msg = request.form["msg"]
     print("User:", msg)
 
-    # Step 1: Get AI answer
+    # Agent 1 → RAG Q&A
+    # Agent 1 → RAG Q&A
     response = rag_chain.invoke({"input": msg})
     ai_answer = response["answer"]
 
-    # Step 2: Doctor recommendation
-    doctor_suggestion = get_doctor_recommendation(msg)
+    # Agent 2 → AI-driven doctor recommendation
+    doctor_suggestion = get_ai_doctor_recommendation(msg)
 
-    if doctor_suggestion:
-        final_answer = ai_answer + "\n\n" + doctor_suggestion + \
-                       "\n You can channel this specialist via eChannelling or Doc990."
-    else:
-        final_answer = ai_answer
+
+    final_answer = ai_answer + doctor_suggestion + \
+                   "\n You can channel this specialist via eChannelling or Doc990."
 
     print("Response:", final_answer)
     return str(final_answer)
