@@ -86,8 +86,11 @@ rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 @app.route("/")
 def index():
     if 'user_id' in session:
-        # Get user's chat sessions
+        # Get user's info including email
         user_id = session['user_id']
+        user = users_collection.find_one({"_id": ObjectId(user_id)})
+        
+        # Get user's chat sessions
         chat_sessions = list(chat_sessions_collection.find(
             {"user_id": user_id}
         ).sort("last_activity", -1))
@@ -99,8 +102,8 @@ def index():
             new_session = {
                 "user_id": user_id,
                 "title": "New Chat",
-                "created_at": get_local_time(),  # Use local time
-                "last_activity": get_local_time(),  # Use local time
+                "created_at": get_local_time(),
+                "last_activity": get_local_time(),
                 "message_count": 0
             }
             result = chat_sessions_collection.insert_one(new_session)
@@ -113,6 +116,7 @@ def index():
         ).sort("timestamp", 1))
         
         return render_template('chat.html', 
+                             user_email=user.get('email', ''),
                              chat_sessions=chat_sessions,
                              current_session_id=current_session_id,
                              messages=messages)
