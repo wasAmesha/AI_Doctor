@@ -118,6 +118,7 @@ def chat_with_doctor():
     # Agent 2 → AI-driven doctor recommendation
     doctor_suggestion = get_ai_doctor_recommendation(msg)
 
+
     final_answer = ai_answer + doctor_suggestion + \
                    "\n You can channel this specialist via eChannelling or Doc990."
 

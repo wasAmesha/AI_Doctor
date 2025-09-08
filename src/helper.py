@@ -47,6 +47,11 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains import LLMChain
 from langchain_openai import OpenAI
 from src.doctor_prompt import doctor_prompt
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import LLMChain
+from langchain_openai import OpenAI
+from src.doctor_prompt import doctor_prompt
+
 # Load spaCy NLP model
 nlp = spacy.load("en_core_web_sm")
 
