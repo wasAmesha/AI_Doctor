@@ -27,7 +27,7 @@ os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
 
 embeddings = download_hugging_face_embeddings()
 
-index_name = 'medicalbot-rag'
+index_name = 'medicalbot'
 
 # Embed each chunk and upsert the embeddings into pinecone index
 docsearch = PineconeVectorStore.from_existing_index(
