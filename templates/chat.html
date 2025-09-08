@@ -17,14 +17,14 @@
 	<!-- Chat sessions sidebar -->
 	<div class="chat-sessions" id="chatSessions">
 		<div class="sessions-header">
-			<h5>Chat History</h5>
+			<div class="header-left">
+				<h5>Chat History</h5>
+				<div class="user-email-header">
+					<i class="fas fa-envelope"></i>
+					<span>{{ user_email }}</span>
+				</div>
+			</div>
 			<button class="close-sessions" onclick="toggleSessions()">×</button>
-		</div>
-
-		<!-- User email directly below header -->
-		<div class="user-email-header">
-			<i class="fas fa-envelope"></i>
-			<span>{{ user_email }}</span>
 		</div>
 
 		<button class="new-session-btn" onclick="newSession()">
@@ -44,6 +44,7 @@
 			{% endfor %}
 		</ul>
 	</div>
+
 
 	<!-- Overlay for mobile -->
 	<div class="overlay" id="overlay" onclick="toggleSessions()"></div>
