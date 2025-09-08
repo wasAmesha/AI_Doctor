@@ -16,7 +16,7 @@ import pytz
 from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 
-from src.helper import download_hugging_face_embeddings, get_doctor_recommendation
+from src.helper import download_hugging_face_embeddings, get_ai_doctor_recommendation
 
 
 app = Flask(__name__)
@@ -307,14 +307,15 @@ def chat():
     ai_answer = str(response["answer"])
     print("AI Response:", ai_answer)
 
-    # Step 2: Get doctor recommendation
-    doctor_suggestion = get_doctor_recommendation(msg)
+        # Agent 2 → AI-driven doctor recommendation
+    doctor_suggestion = get_ai_doctor_recommendation(msg)
 
-    if doctor_suggestion:
-        final_answer = ai_answer + "\n\n" + doctor_suggestion + \
-                       "\n You can channel this specialist via eChannelling or Doc990."
-    else:
-        final_answer = ai_answer
+    final_answer = ai_answer + doctor_suggestion + \
+                   "\n You can channel this specialist via eChannelling or Doc990."
+
+    print("Response:", final_answer)
+    return str(final_answer)
+
 
     # Save AI + doctor suggestion response to database
     ai_message = {
