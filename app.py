@@ -1,5 +1,5 @@
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session, flash
-from src.helper import download_hugging_face_embeddings
+from src.helper import download_hugging_face_embeddings, get_ai_doctor_recommendation
 from langchain_pinecone import PineconeVectorStore
 from langchain_openai import OpenAI
 from langchain.chains import create_retrieval_chain
@@ -11,35 +11,26 @@ import os
 import hashlib
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from datetime import datetime, timezone
-import pytz
-from langchain_openai import ChatOpenAI
-from langchain_core.prompts import ChatPromptTemplate
+from datetime import datetime
 
-from src.helper import download_hugging_face_embeddings, get_ai_doctor_recommendation
-
-
+# -------------------- Flask App --------------------
 app = Flask(__name__)
-app.secret_key = os.environ.get('SECRET_KEY', 'your_fallback_secret_key_here')
+app.secret_key = os.getenv('SECRET_KEY', 'fallback_secret_key')
 
+# -------------------- Load Environment --------------------
 load_dotenv()
 
-PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+# Set API keys for libraries
+pinecone_key = os.getenv("PINECONE_API_KEY")
+openai_key = os.getenv("OPENAI_API_KEY")
+if pinecone_key:
+    os.environ["PINECONE_API_KEY"] = pinecone_key
+if openai_key:
+    os.environ["OPENAI_API_KEY"] = openai_key
 
-os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-
-# MongoDB connection
-MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
-DB_NAME = os.environ.get('DB_NAME', 'medical_chatbot')
-
-# Initialize MongoDB variables
-client = None
-db = None
-users_collection = None
-chat_sessions_collection = None
-messages_collection = None
+# -------------------- MongoDB Setup --------------------
+MONGO_URI = os.getenv('MONGO_URI')
+DB_NAME = os.getenv('DB_NAME', 'medicalbot')
 
 try:
     client = MongoClient(MONGO_URI)
@@ -50,21 +41,19 @@ try:
     print("Connected to MongoDB successfully")
 except Exception as e:
     print(f"Error connecting to MongoDB: {e}")
-    # Fallback to a simple dictionary for user storage (for demo purposes only)
     users_collection = None
 
+# -------------------- Utility Functions --------------------
 def hash_password(password):
     return hashlib.sha256(password.encode()).hexdigest()
 
 def get_local_time():
-    """Get current local time without timezone information"""
     return datetime.now()
 
+# -------------------- Embeddings & RAG Setup --------------------
 embeddings = download_hugging_face_embeddings()
-
 index_name = 'medicalbot'
 
-# Embed each chunk and upsert the embeddings into pinecone index
 docsearch = PineconeVectorStore.from_existing_index(
     index_name=index_name,
     embedding=embeddings,
@@ -73,32 +62,37 @@ docsearch = PineconeVectorStore.from_existing_index(
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
 llm = OpenAI(temperature=0.4, max_tokens=500)
-prompt = ChatPromptTemplate.from_messages(
-    [
-        ("system", system_prompt),
-        ("human", "Question: {input}\n\nContext: {context}")
-    ]
-)
+
+prompt = ChatPromptTemplate.from_template("""
+You are a helpful AI doctor assistant.
+Use the following context to answer the user's question.
+If the context is not relevant, just say you don’t know.
+
+Context:
+{context}
+
+Question:
+{input}
+
+Answer:
+""")
 
 question_answer_chain = create_stuff_documents_chain(llm, prompt)
 rag_chain = create_retrieval_chain(retriever, question_answer_chain)
 
+# -------------------- Routes --------------------
 @app.route("/")
 def index():
     if 'user_id' in session:
-        # Get user's info including email
         user_id = session['user_id']
         user = users_collection.find_one({"_id": ObjectId(user_id)})
-        
-        # Get user's chat sessions
+
         chat_sessions = list(chat_sessions_collection.find(
             {"user_id": user_id}
         ).sort("last_activity", -1))
-        
-        # Get current session ID or create a new one
+
         current_session_id = session.get('current_session_id')
         if not current_session_id:
-            # Create a new chat session
             new_session = {
                 "user_id": user_id,
                 "title": "New Chat",
@@ -109,17 +103,16 @@ def index():
             result = chat_sessions_collection.insert_one(new_session)
             current_session_id = str(result.inserted_id)
             session['current_session_id'] = current_session_id
-        
-        # Get messages for current session
+
         messages = list(messages_collection.find(
             {"session_id": current_session_id}
         ).sort("timestamp", 1))
-        
-        return render_template('chat.html', 
-                             user_email=user.get('email', ''),
-                             chat_sessions=chat_sessions,
-                             current_session_id=current_session_id,
-                             messages=messages)
+
+        return render_template('chat.html',
+                               user_email=user.get('email', ''),
+                               chat_sessions=chat_sessions,
+                               current_session_id=current_session_id,
+                               messages=messages)
     else:
         return redirect(url_for('login'))
 
@@ -127,37 +120,35 @@ def index():
 def switch_session(session_id):
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    # Verify the session belongs to the user
+
     session_obj = chat_sessions_collection.find_one({
         "_id": ObjectId(session_id),
         "user_id": session['user_id']
     })
-    
+
     if session_obj:
         session['current_session_id'] = session_id
         flash('Switched to selected chat session', 'info')
     else:
         flash('Invalid chat session', 'error')
-    
+
     return redirect(url_for('index'))
 
 @app.route("/session/new")
 def new_session():
     if 'user_id' not in session:
         return redirect(url_for('login'))
-    
-    # Create a new chat session
+
     new_session = {
         "user_id": session['user_id'],
         "title": "New Chat",
-        "created_at": get_local_time(),  # Use local time
-        "last_activity": get_local_time(),  # Use local time
+        "created_at": get_local_time(),
+        "last_activity": get_local_time(),
         "message_count": 0
     }
     result = chat_sessions_collection.insert_one(new_session)
     session['current_session_id'] = str(result.inserted_id)
-    
+
     flash('Started a new chat session', 'info')
     return redirect(url_for('index'))
 
@@ -167,28 +158,23 @@ def delete_session(session_id):
         if request.method == 'POST':
             return jsonify({"success": False, "error": "Not authenticated"}), 401
         return redirect(url_for('login'))
-    
+
     try:
-        # Verify the session belongs to the user
         session_obj = chat_sessions_collection.find_one({
             "_id": ObjectId(session_id),
             "user_id": session['user_id']
         })
-        
+
         if session_obj:
-            # Delete the session and all its messages
             chat_sessions_collection.delete_one({"_id": ObjectId(session_id)})
             messages_collection.delete_many({"session_id": session_id})
-            
-            # If deleting current session, switch to a new one
+
             if session.get('current_session_id') == session_id:
                 session.pop('current_session_id', None)
-            
+
             if request.method == 'POST':
-                # Return JSON response for AJAX requests
                 return jsonify({"success": True, "message": "Chat session deleted"})
             else:
-                # Return redirect for regular GET requests
                 flash('Chat session deleted', 'info')
                 return redirect(url_for('index'))
         else:
@@ -197,7 +183,7 @@ def delete_session(session_id):
             else:
                 flash('Invalid chat session', 'error')
                 return redirect(url_for('index'))
-            
+
     except Exception as e:
         if request.method == 'POST':
             return jsonify({"success": False, "error": str(e)}), 500
@@ -205,38 +191,33 @@ def delete_session(session_id):
             flash('Error deleting session: ' + str(e), 'error')
             return redirect(url_for('index'))
 
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
         hashed_password = hash_password(password)
-        
+
         if users_collection is not None:
-            # MongoDB approach
             user = users_collection.find_one({
-                "username": username, 
+                "username": username,
                 "password": hashed_password
             })
-            
+
             if user:
                 session['user_id'] = str(user['_id'])
                 session['username'] = user['username']
-                # Clear any previous session ID
                 session.pop('current_session_id', None)
-                # Update last login time with local time
                 users_collection.update_one(
                     {"_id": user['_id']},
-                    {"$set": {"last_login": get_local_time()}}  # Use local time
+                    {"$set": {"last_login": get_local_time()}}
                 )
                 return redirect(url_for('index'))
             else:
                 return render_template('login.html', error="Invalid credentials")
         else:
-            # Fallback for demo purposes
             return render_template('login.html', error="Database not available")
-    
+
     return render_template('login.html')
 
 @app.route("/signup", methods=["GET", "POST"])
@@ -246,30 +227,25 @@ def signup():
         password = request.form["password"]
         email = request.form.get("email", "")
         hashed_password = hash_password(password)
-        
+
         if users_collection is not None:
-            # Check if username already exists
             if users_collection.find_one({"username": username}):
                 return render_template('signup.html', error="Username already exists")
-            
-            # Create new user with local time
+
             new_user = {
                 "username": username,
                 "password": hashed_password,
                 "email": email,
-                "created_at": get_local_time(),  # Use local time
-                "last_login": None  # No login yet
+                "created_at": get_local_time(),
+                "last_login": None
             }
-            
-            result = users_collection.insert_one(new_user)
-            
-            # CHANGED: Redirect to login page with success message instead of auto-login
-            # Use flash message to show success
+
+            users_collection.insert_one(new_user)
             flash('Account created successfully! Please log in.', 'success')
             return redirect(url_for('login'))
         else:
             return render_template('signup.html', error="Database not available")
-    
+
     return render_template('signup.html')
 
 @app.route("/logout")
@@ -277,8 +253,6 @@ def logout():
     session.clear()
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('login'))
-
-
 
 @app.route("/get", methods=["POST"])
 def chat():
@@ -292,7 +266,6 @@ def chat():
     msg = request.form["msg"]
     print("User:", msg)
 
-    # Save user message to database with local time
     user_message = {
         "session_id": current_session_id,
         "user_id": session['user_id'],
@@ -302,22 +275,22 @@ def chat():
     }
     messages_collection.insert_one(user_message)
 
-    # Step 1: Get AI answer
+    # -------------------- RAG AI --------------------
     response = rag_chain.invoke({"input": msg})
     ai_answer = str(response["answer"])
     print("AI Response:", ai_answer)
 
-        # Agent 2 → AI-driven doctor recommendation
+    # -------------------- Doctor Recommendation --------------------
     doctor_suggestion = get_ai_doctor_recommendation(msg)
 
-    final_answer = ai_answer + doctor_suggestion + \
-                   "\n You can channel this specialist via eChannelling or Doc990."
+    final_answer = (
+        ai_answer
+        + doctor_suggestion
+        + "\n You can channel this specialist via eChannelling or Doc990."
+    )
 
     print("Response:", final_answer)
-    return str(final_answer)
 
-
-    # Save AI + doctor suggestion response to database
     ai_message = {
         "session_id": current_session_id,
         "user_id": session['user_id'],
@@ -327,16 +300,14 @@ def chat():
     }
     messages_collection.insert_one(ai_message)
 
-    # Update session activity and message count
     chat_sessions_collection.update_one(
         {"_id": ObjectId(current_session_id)},
         {
             "$set": {"last_activity": get_local_time()},
-            "$inc": {"message_count": 2}  # User + AI messages
+            "$inc": {"message_count": 2}
         }
     )
 
-    # Update session title if it's the first message
     session_obj = chat_sessions_collection.find_one({"_id": ObjectId(current_session_id)})
     if session_obj and session_obj.get('message_count', 0) <= 2:
         title = msg[:30] + "..." if len(msg) > 30 else msg
@@ -348,7 +319,8 @@ def chat():
             {"$set": {"title": title}}
         )
 
-    return final_answer
+    return jsonify({"response": final_answer})
 
+# -------------------- Run App --------------------
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)

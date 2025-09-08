@@ -20,7 +20,7 @@ index_name = "medicalbot"
 
 pc.create_index(
     name=index_name,
-    dimension=384,
+    dimension=768,
     metric="cosine",
     spec=ServerlessSpec(
         cloud='aws',

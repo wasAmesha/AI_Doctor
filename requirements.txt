@@ -11,4 +11,11 @@ langchain_experimental
 langchain-huggingface
 pytz
 pymongo
--e .
+torch
+transformers
+scispacy
+spacy
+ctgan
+pandas
+scikit-learn
+# -e .
