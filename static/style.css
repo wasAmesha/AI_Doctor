@@ -415,133 +415,153 @@ html {
 
 /* Chat sessions sidebar */
 .chat-sessions {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100%;
-    width: 300px;
-    background: white;
-    box-shadow: var(--shadow-lg);
-    transform: translateX(-100%);
-    transition: transform 0.3s ease;
-    z-index: 1000;
-    padding: 20px;
-    overflow-y: auto;
+	position: fixed;
+	left: 0;
+	top: 0;
+	height: 100%;
+	width: 300px;
+	background: white;
+	box-shadow: var(--shadow-lg);
+	transform: translateX(-100%);
+	transition: transform 0.3s ease;
+	z-index: 1000;
+	padding: 20px;
+	overflow-y: auto;
 }
 
 .chat-sessions.active {
-    transform: translateX(0);
+	transform: translateX(0);
 }
 
 .sessions-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
+	display: flex;
+	justify-content: space-between;
+	align-items: flex-start;
+	margin-bottom: 20px;
+	padding-bottom: 15px;
+	border-bottom: 1px solid var(--border-color);
 }
 
 .header-left {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 .sessions-header h5 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
+	margin: 0;
+	font-size: 16px;
+	font-weight: 600;
 }
 
 .close-sessions {
-    background: none;
-    border: none;
-    font-size: 20px;
-    cursor: pointer;
-    color: var(--text-secondary);
+	background: none;
+	border: none;
+	font-size: 20px;
+	cursor: pointer;
+	color: var(--text-secondary);
 }
 
 .session-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+	list-style: none;
+	padding: 0;
+	margin: 0;
 }
 
 .session-item {
-    padding: 12px 15px;
-    margin-bottom: 8px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
+	padding: 12px 15px;
+	margin-bottom: 8px;
+	border-radius: 12px;
+	cursor: pointer;
+	transition: all 0.3s ease;
+	border: 2px solid transparent;
 }
 
 .session-item:hover {
-    background: var(--bg-secondary);
+	background: var(--bg-secondary);
 }
 
 .session-item.active {
-    background: var(--medical-primary);
-    color: white;
-    border-color: var(--medical-primary);
+	background: var(--medical-primary);
+	color: white;
+	border-color: var(--medical-primary);
 }
 
 .session-title {
-    font-weight: 500;
-    margin-bottom: 4px;
+	font-weight: 500;
+	margin-bottom: 4px;
 }
 
 .session-meta {
-    font-size: 12px;
-    opacity: 0.7;
+	font-size: 12px;
+	opacity: 0.7;
 }
 
 .new-session-btn {
-    width: 100%;
-    padding: 12px;
-    background: var(--primary-gradient);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    cursor: pointer;
-    font-weight: 500;
-    margin-top: 15px;
-    margin-bottom: 20px; /* Added vertical spacing */
-    transition: all 0.3s ease;
+	width: 100%;
+	padding: 12px;
+	background: var(--primary-gradient);
+	color: white;
+	border: none;
+	border-radius: 12px;
+	cursor: pointer;
+	font-weight: 500;
+	margin-top: 15px;
+	margin-bottom: 20px;
+	/* Added vertical spacing */
+	transition: all 0.3s ease;
 }
 
 .new-session-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
 }
 
 .menu-toggle {
-    position: fixed;
-    left: 20px;
-    top: 20px;
-    background: var(--primary-gradient);
-    color: white;
-    border: none;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 999;
-    box-shadow: var(--shadow-lg);
+	position: fixed;
+	left: 20px;
+	top: 20px;
+	background: var(--primary-gradient);
+	color: white;
+	border: none;
+	border-radius: 50%;
+	width: 50px;
+	height: 50px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	z-index: 999;
+	box-shadow: var(--shadow-lg);
 }
 
+.session-delete-btn {
+	background: none;
+	border: none;
+	color: #6c757d;
+	cursor: pointer;
+	padding: 5px;
+	border-radius: 4px;
+	opacity: 0.6;
+	transition: all 0.2s;
+}
 
+.session-delete-btn:hover {
+	color: #dc3545;
+	opacity: 1;
+	background-color: rgba(220, 53, 69, 0.1);
+}
 
+.session-title {
+	font-weight: 500;
+	margin-bottom: 3px;
+	color: #333;
+}
 
-
-
-
-
-
+.session-meta {
+	font-size: 12px;
+	color: #6c757d;
+}
 
 /* Overlay for mobile */
 .overlay {
@@ -561,16 +581,16 @@ html {
 
 /* User email display styles */
 .user-email-header {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: var(--text-secondary);
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+	color: var(--text-secondary);
 }
 
 .user-email-header i {
-    color: var(--medical-primary);
-    font-size: 12px;
+	color: var(--medical-primary);
+	font-size: 12px;
 }
 
 .user-sidebar-info {
@@ -614,7 +634,7 @@ html {
 		padding: 10px;
 	}
 
-	
+
 
 	.header-actions {
 		flex-direction: column;
