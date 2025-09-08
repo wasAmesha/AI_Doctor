@@ -307,15 +307,13 @@ def chat():
     ai_answer = str(response["answer"])
     print("AI Response:", ai_answer)
 
-        # Agent 2 → AI-driven doctor recommendation
+    # Agent 2 → AI-driven doctor recommendation
     doctor_suggestion = get_ai_doctor_recommendation(msg)
 
     final_answer = ai_answer + doctor_suggestion + \
                    "\n You can channel this specialist via eChannelling or Doc990."
 
     print("Response:", final_answer)
-    return str(final_answer)
-
 
     # Save AI + doctor suggestion response to database
     ai_message = {
@@ -338,7 +336,7 @@ def chat():
 
     # Update session title if it's the first message
     session_obj = chat_sessions_collection.find_one({"_id": ObjectId(current_session_id)})
-    if session_obj and session_obj.get('message_count', 0) <= 2:
+    if session_obj and session_obj.get('message_count', 0) <= 2:  # First message pair
         title = msg[:30] + "..." if len(msg) > 30 else msg
         if not title.strip():
             title = "New Chat"
