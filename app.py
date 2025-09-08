@@ -204,6 +204,8 @@ def delete_session(session_id):
         else:
             flash('Error deleting session: ' + str(e), 'error')
             return redirect(url_for('index'))
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
@@ -276,67 +278,76 @@ def logout():
     flash('You have been logged out successfully.', 'info')
     return redirect(url_for('login'))
 
+
+
 @app.route("/get", methods=["POST"])
 def chat():
     if 'user_id' not in session:
         return jsonify({"error": "Not authenticated"}), 401
-        
+
     current_session_id = session.get('current_session_id')
     if not current_session_id:
         return jsonify({"error": "No active session"}), 400
-        
+
     msg = request.form["msg"]
-    input = msg
-    print(input)
-    
+    print("User:", msg)
+
     # Save user message to database with local time
     user_message = {
         "session_id": current_session_id,
         "user_id": session['user_id'],
         "content": msg,
         "sender": "user",
-        "timestamp": get_local_time()  # Use local time
+        "timestamp": get_local_time()
     }
     messages_collection.insert_one(user_message)
-    
-    # Get AI response
+
+    # Step 1: Get AI answer
     response = rag_chain.invoke({"input": msg})
-    answer = str(response["answer"])
-    print("Response : ", answer)
-    
-    # Save AI response to database with local time
+    ai_answer = str(response["answer"])
+    print("AI Response:", ai_answer)
+
+    # Step 2: Get doctor recommendation
+    doctor_suggestion = get_doctor_recommendation(msg)
+
+    if doctor_suggestion:
+        final_answer = ai_answer + "\n\n" + doctor_suggestion + \
+                       "\n You can channel this specialist via eChannelling or Doc990."
+    else:
+        final_answer = ai_answer
+
+    # Save AI + doctor suggestion response to database
     ai_message = {
         "session_id": current_session_id,
         "user_id": session['user_id'],
-        "content": answer,
+        "content": final_answer,
         "sender": "ai",
-        "timestamp": get_local_time()  # Use local time
+        "timestamp": get_local_time()
     }
     messages_collection.insert_one(ai_message)
-    
-    # Update session activity and message count with local time
+
+    # Update session activity and message count
     chat_sessions_collection.update_one(
         {"_id": ObjectId(current_session_id)},
         {
-            "$set": {"last_activity": get_local_time()},  # Use local time
-            "$inc": {"message_count": 2}  # Count both user and AI messages
+            "$set": {"last_activity": get_local_time()},
+            "$inc": {"message_count": 2}  # User + AI messages
         }
     )
-    
+
     # Update session title if it's the first message
     session_obj = chat_sessions_collection.find_one({"_id": ObjectId(current_session_id)})
-    if session_obj and session_obj.get('message_count', 0) <= 2:  # First exchange
-        # Create a title from the first message (truncate if too long)
+    if session_obj and session_obj.get('message_count', 0) <= 2:
         title = msg[:30] + "..." if len(msg) > 30 else msg
         if not title.strip():
             title = "New Chat"
-            
+
         chat_sessions_collection.update_one(
             {"_id": ObjectId(current_session_id)},
             {"$set": {"title": title}}
         )
-    
-    return answer
+
+    return final_answer
 
 if __name__ == '__main__':
     app.run(host="0.0.0.0", port=8080, debug=True)
