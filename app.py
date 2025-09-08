@@ -106,11 +106,13 @@ def index():
 
 #     print("Response:", final_answer)
 #     return str(final_answer)
+
 @app.route("/get", methods=["GET", "POST"])
 def chat_with_doctor():
     msg = request.form["msg"]
     print("User:", msg)
 
+    # Agent 1 → RAG Q&A
     # Agent 1 → RAG Q&A
     response = rag_chain.invoke({"input": msg})
     ai_answer = response["answer"]
