@@ -23,12 +23,13 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_fallback_secret_key_here')
 
 load_dotenv()
-
 PINECONE_API_KEY = os.environ.get('PINECONE_API_KEY')
-OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+# OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+HF_TOKEN = os.environ.get('HF_TOKEN')
 
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
-os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+# os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+os.environ["HF_TOKEN"] = HF_TOKEN
 
 # MongoDB connection
 MONGO_URI = os.environ.get('MONGO_URI', 'mongodb://localhost:27017/')
@@ -72,7 +73,20 @@ docsearch = PineconeVectorStore.from_existing_index(
 
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
-llm = OpenAI(temperature=0.4, max_tokens=500)
+# llm = OpenAI(temperature=0.4, max_tokens=500)
+llm = ChatOpenAI(
+    model="Intelligent-Internet/II-Medical-8B-1706:featherless-ai",
+    temperature=0.4,
+    max_tokens=500,
+    api_key=HF_TOKEN,
+    base_url="https://router.huggingface.co/v1"
+)
+prompt = ChatPromptTemplate.from_messages(
+    [
+        ("system", system_prompt),
+        ("human", "{input}")
+    ]
+)
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
