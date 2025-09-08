@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from src.prompt import *
 import os
 from langchain_openai import ChatOpenAI
+from langchain_core.prompts import ChatPromptTemplate
 
 from src.helper import download_hugging_face_embeddings, get_doctor_recommendation
 
@@ -45,10 +46,11 @@ llm = OpenAI(temperature=0.4, max_tokens=500)
 #     api_key=HF_TOKEN,
 #     base_url="https://router.huggingface.co/v1"
 # )
+
 prompt = ChatPromptTemplate.from_messages(
     [
         ("system", system_prompt),
-        ("human", "{input}")
+        ("human", "Question: {input}\n\nContext: {context}")
     ]
 )
 
