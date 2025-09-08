@@ -309,7 +309,7 @@ def chat():
     )
 
     session_obj = chat_sessions_collection.find_one({"_id": ObjectId(current_session_id)})
-    if session_obj and session_obj.get('message_count', 0) <= 2:
+    if session_obj and session_obj.get('message_count', 0) <= 2:  # First message pair
         title = msg[:30] + "..." if len(msg) > 30 else msg
         if not title.strip():
             title = "New Chat"
