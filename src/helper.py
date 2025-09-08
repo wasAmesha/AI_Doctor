@@ -43,7 +43,10 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from src.doctor_mapper import specialist_mapping
 import spacy
-
+from langchain_core.prompts import ChatPromptTemplate
+from langchain.chains import LLMChain
+from langchain_openai import OpenAI
+from src.doctor_prompt import doctor_prompt
 # Load spaCy NLP model
 nlp = spacy.load("en_core_web_sm")
 
@@ -90,10 +93,23 @@ def download_hugging_face_embeddings():
     return embeddings
 
 
-# Doctor recommendation function
-def get_doctor_recommendation(user_input: str):
-    user_input = user_input.lower()
-    for symptom, doctor in specialist_mapping.items():
-        if symptom in user_input:
-            return f"\n\n  For your symptoms ({symptom}), you should consult a **{doctor}**."
-    return None
+# # Doctor recommendation function
+# def get_doctor_recommendation(user_input: str):
+#     user_input = user_input.lower()
+#     for symptom, doctor in specialist_mapping.items():
+#         if symptom in user_input:
+#             return f"\n\n  For your symptoms ({symptom}), you should consult a **{doctor}**."
+#     return None
+
+# Create the chain for doctor recommendation
+doctor_prompt_template = ChatPromptTemplate.from_template(doctor_prompt)
+doctor_llm = OpenAI(temperature=0)  # deterministic output
+doctor_chain = LLMChain(llm=doctor_llm, prompt=doctor_prompt_template)
+
+def get_ai_doctor_recommendation(user_input: str):
+    try:
+        result = doctor_chain.run({"input": user_input})
+        specialty = result.strip()
+        return f"\n\nFor your symptoms, you should consult a **{specialty}**."
+    except Exception as e:
+        return "\n\nFor your symptoms, you should consult a **General Physician**."
